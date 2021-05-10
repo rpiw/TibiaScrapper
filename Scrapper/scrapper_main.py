@@ -2,8 +2,10 @@ import re
 from datetime import datetime
 from typing import Tuple, List
 
+import requests
 from bs4 import BeautifulSoup
-from requests_html import HTMLSession
+from loguru import logger
+from requests_html import HTMLSession  # use requests instead!
 
 
 class Player:
@@ -124,12 +126,40 @@ class World:
             self.players_list.append(player)
 
 
+class BazaarScrapper:
+    u"""Retrieve all hyperlinks to auctions."""
+
+    _url = "https://www.tibia.com/charactertrade/?subtopic=currentcharactertrades"
+
+    _auction_pattern = re.compile(r"auctionid")
+
+    @classmethod
+    def get_links(cls, url):
+        if url is None or url == "":
+            url = BazaarScrapper._url
+
+        response = requests.get(url)
+        if not response.ok:
+            logger.info(f"Server not found. Response is: {response}")
+            return
+        logger.info("Response ok.")
+
+        soup = BeautifulSoup(response.text, features='lxml')
+        links = [link.get('href') for link in
+                 soup.find_all("a", attrs={"href": BazaarScrapper._auction_pattern})]
+
+        print(links)
+        print(len(links))
+
+
 if __name__ == '__main__':
-    worlds_list = World.get_worlds_list()
-    for w in enumerate(worlds_list):
-        print((w), ",", end="")
+    # worlds_list = World.get_worlds_list()
+    # for w in enumerate(worlds_list):
+    #     print((w), ",", end="")
     # worlds = []
     # for world in worlds_list:
     #     worlds.append(World(world))
     # for w in worlds:
     #     w.scrap_world_data()
+    bazaar = BazaarScrapper()
+    bazaar.get_links()

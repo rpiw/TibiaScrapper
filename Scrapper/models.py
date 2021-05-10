@@ -30,7 +30,7 @@ class World(models.Model):
     pvp_settings_choices = [(0, "Open PvP"), (1, "Optional PvP"), (2, "Retro PvP"), (3, "Other")]
     pvp_settings = models.PositiveSmallIntegerField(choices=pvp_settings_choices, default=0)
     transfer_type = models.BooleanField(default=True)
-    creation_date = models.DateTimeField(default=datetime.min)
+    creation_date = models.DateTimeField(blank=True)
     battle_eye_status = models.BooleanField(default=False)
 
 
