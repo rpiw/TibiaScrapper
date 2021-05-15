@@ -132,9 +132,50 @@ class BazaarScrapper:
     _url = "https://www.tibia.com/charactertrade/?subtopic=currentcharactertrades"
 
     _auction_pattern = re.compile(r"auctionid")
+    _parameters = dict()
+    response = requests.get(_url)
+    soup = BeautifulSoup(response.text, 'lxml')
+
+    def __init__(self, url=""):
+        self.links = []
+        self.pages: int = self.find_how_many_pages_exists()
+        self.url = url if url else BazaarScrapper._url
+        self.response = requests.get(self.url)
+        self.soup = BeautifulSoup(self.response.text, 'lxml')
+
+    def find_how_many_pages_exists(self) -> int:
+        last_page = "PageLink FirstOrLastElement"
+        tag = self.soup.find_all("span", attrs={"class": last_page})  # parent tag
+        last = list(filter(lambda x: "last page" in x.text.lower(), tag))[0]  # there should 2 of them, but I need 1
+        href = last.contents[0].get('href')  # the link is inside the tag
+        parser = re.search(r'currentpage=\d+', href).group().replace("currentpage=", "")
+        if parser:
+            return int(parser)
+        return 0
 
     @classmethod
-    def get_links(cls, url):
+    def find_all_parameters(cls) -> dict:
+        selectable = BazaarScrapper.soup.find_all("select")
+        names = (x.attrs["name"] for x in selectable)
+        options = (x.find_all("option") for x in selectable)
+        parameters = {}
+        for option_list, name in zip(options, names):
+            option_names = [x.text for x in option_list]
+            option_values = [x.attrs["value"] for x in option_list]
+            parameters[name] = [(name, value) for name, value in zip(option_names, option_values)]
+        BazaarScrapper._parameters = parameters
+        return parameters
+
+    # def build_url(self, page_number=1):
+    #
+    #     keys = ('subtopic', 'filter_profession', 'filter_levelrangefrom', 'filter_levelrangeto', 'filter_world',
+    #             'filter_worldpvptype', 'filter_worldbattleyestate', 'filter_skillid',
+    #             'filter_skillrangefrom', 'filter_skillrangeto', 'order_column',
+    #             'order_direction', 'searchtype', 'currentpage')
+    #
+    #     values = (str(x) for x in ("currentcharactertrades", 0, 0, 0, "", 9, 0, "", 0, 0, 101, 1, 1, 1))  # default values, what ever they means
+
+    def get_links(self, url):
         if url is None or url == "":
             url = BazaarScrapper._url
 
@@ -147,9 +188,8 @@ class BazaarScrapper:
         soup = BeautifulSoup(response.text, features='lxml')
         links = [link.get('href') for link in
                  soup.find_all("a", attrs={"href": BazaarScrapper._auction_pattern})]
-
-        print(links)
-        print(len(links))
+        self.links = links
+        return links
 
 
 if __name__ == '__main__':
@@ -162,4 +202,7 @@ if __name__ == '__main__':
     # for w in worlds:
     #     w.scrap_world_data()
     bazaar = BazaarScrapper()
-    bazaar.get_links()
+    # bazaar.get_links()
+    # bazaar.build_url()
+    # bazaar.find_all_parameters()
+    # bazaar.find_how_many_pages_exists()
